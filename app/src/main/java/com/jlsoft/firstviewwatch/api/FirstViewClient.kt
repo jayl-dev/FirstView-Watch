@@ -49,7 +49,7 @@ object FirstViewClient {
     private const val BASE_URL = "https://firstviewbackend.com/api/"
 
     // Helper function to build an OkHttpClient with the AuthInterceptor.
-    private fun provideOkHttpClient(context: Context): OkHttpClient {
+    private fun provideOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor(AuthInterceptor()) // Our interceptor that refreshes tokens if needed
@@ -59,7 +59,7 @@ object FirstViewClient {
     val instance: FirstViewApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(provideOkHttpClient(MyApplication.applicationContext()))
+            .client(provideOkHttpClient())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(FirstViewApiService::class.java)

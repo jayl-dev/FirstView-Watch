@@ -2,9 +2,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.jlsoft.firstviewwatch.api.EtaResponse
 import com.jlsoft.firstviewwatch.api.FirstViewClient
-import com.jlsoft.firstviewwatch.api.VehicleLocation
-import kotlinx.coroutines.flow.*
-import kotlin.random.Random
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class MapViewModel : ViewModel() {
 
