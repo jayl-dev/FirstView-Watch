@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,6 +34,9 @@ import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.rememberCameraPositionState
+
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
@@ -44,9 +48,13 @@ import com.jlsoft.firstviewwatch.R
 import com.jlsoft.firstviewwatch.api.Stop
 import com.jlsoft.firstviewwatch.api.VehicleLocation
 import com.jlsoft.firstviewwatch.settings.SettingsActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @Composable
@@ -56,22 +64,38 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
     val stopMarkers = remember { mutableSetOf<Marker>() }
     val busMarkers = remember { mutableSetOf<Marker>() }
     val hasZoomAdjusted = remember { mutableStateOf(false) }
-
+    val isPanning = remember { mutableStateOf(false) }
 
     // Observe the latest EtaResponse from the ViewModel.
     val etaResponse by viewModel.etaResponse.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    var showIconsJob: Job? = null
+
+
 
     DisposableEffect(mapView) {
         mapView.getMapAsync { map ->
             googleMap = map
-            map.uiSettings.isZoomControlsEnabled = MyApplication.isRunningOnEmulator()
+//            map.uiSettings.isZoomControlsEnabled = MyApplication.isRunningOnEmulator()
 
             map.setOnCameraMoveStartedListener { reason ->
                 if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
                     hasZoomAdjusted.value = true
+                    isPanning.value = true
+                    showIconsJob?.cancel()
+                    map.uiSettings.isZoomControlsEnabled = true
                 }
             }
+            map.setOnCameraIdleListener {
+                // Use a coroutine on the Main dispatcher to delay showing icons.
+                showIconsJob = CoroutineScope(Dispatchers.Main).launch {
+                    delay(2000L) // 1 second delay after panning stops
+                    map.uiSettings.isZoomControlsEnabled = false
+                    isPanning.value = false
+                }
+            }
+
+
         }
         onDispose {
             googleMap?.setOnCameraMoveStartedListener(null)
@@ -120,12 +144,6 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
             adjustZoom(googleMap, stopMarkers)
             hasZoomAdjusted.value = true
         }
-//        snapshotFlow {etaResponse}
-//            .collect { etaResponse ->
-//                if (etaResponse == null) return@collect
-//
-//
-//            }
     }
 
     LaunchedEffect(mapView) {
@@ -151,23 +169,42 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
                 .aspectRatio(1f) // For round watches
         )
 
-        // Small settings button using an IconButton with a settings icon.
-        IconButton(
-            onClick = {
-                // Launch the settings activity
-                val intent = Intent(context, SettingsActivity::class.java)
-                context.startActivity(intent)
-            },
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(4.dp)
-                .size(40.dp) // Smaller icon button size (adjust as needed)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Settings,
-                contentDescription = "Settings",
-                tint = MaterialTheme.colors.primary
-            )
+        if(!isPanning.value){
+            IconButton(
+                onClick = {
+                    // Launch the settings activity
+                    val intent = Intent(context, SettingsActivity::class.java)
+                    context.startActivity(intent)
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(2.dp)
+                    .size(40.dp) // Smaller icon button size (adjust as needed)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = "Settings",
+                    tint = MaterialTheme.colors.primary
+                )
+            }
+
+            IconButton(
+                onClick = {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        viewModel.refreshData()
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(2.dp)
+                    .size(40.dp) // Smaller icon button size (adjust as needed)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = "Refresh",
+                    tint = MaterialTheme.colors.primary
+                )
+            }
         }
 
 

@@ -7,14 +7,20 @@ package com.jlsoft.firstviewwatch.presentation
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.wear.ambient.AmbientLifecycleObserver
 import com.jlsoft.firstviewwatch.MyApplication
 import com.jlsoft.firstviewwatch.login.LoginActivity
 import com.jlsoft.firstviewwatch.map.WearMapScreen
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity() ,  AmbientLifecycleObserver.AmbientLifecycleCallback {
+
+    private lateinit var ambientObserver: AmbientLifecycleObserver
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -22,7 +28,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setTheme(android.R.style.Theme_DeviceDefault)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Create and register your ambient observer.
+        ambientObserver = AmbientLifecycleObserver(this, this)
+        lifecycle.addObserver(ambientObserver)
 
+        setupMainUi()
 
     }
 
@@ -36,7 +47,6 @@ class MainActivity : ComponentActivity() {
 
         when {
             token.isNullOrEmpty() -> redirectToLogin()
-            else -> setupMainUi()
         }
     }
 
@@ -50,5 +60,19 @@ class MainActivity : ComponentActivity() {
             WearMapScreen()
         }
     }
+
+
+    override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+        super.onEnterAmbient(ambientDetails)
+        Log.d("Ambient", "Enter")
+    }
+    override fun onExitAmbient() {
+        Log.d("Ambient", "Exit")
+    }
+    override fun onUpdateAmbient() {
+        // Optionally update UI elements periodically while in ambient mode
+    }
+
+
 }
 

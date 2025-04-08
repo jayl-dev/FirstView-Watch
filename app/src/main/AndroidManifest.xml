@@ -65,6 +65,9 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="com.google.android.wearable.standalone"
+                android:value="true" />
         </activity>
         <activity
             android:name=".login.LoginActivity"
