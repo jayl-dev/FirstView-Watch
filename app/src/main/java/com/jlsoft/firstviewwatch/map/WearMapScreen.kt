@@ -27,7 +27,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.createBitmap
-import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
@@ -51,10 +50,8 @@ import kotlin.math.abs
 
 @Composable
 fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
-    // Create and remember the MapView
     val mapView = rememberMapViewWithLifecycle()
     var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
-    // Cache markers keyed by a unique identifier (e.g., stop.id).
     val stopMarkers = remember { mutableSetOf<Marker>() }
     val busMarkers = remember { mutableSetOf<Marker>() }
     val hasZoomAdjusted = remember { mutableStateOf(false) }
@@ -64,12 +61,9 @@ fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
     val etaResponse by viewModel.etaResponse.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-
-
-    // Retrieve the GoogleMap instance only once.
     DisposableEffect(mapView) {
         mapView.getMapAsync { map ->
-            googleMap = map // Update the state
+            googleMap = map
             map.uiSettings.isZoomControlsEnabled = MyApplication.isRunningOnEmulator()
 
             map.setOnCameraMoveStartedListener { reason ->
@@ -84,7 +78,6 @@ fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
         }
     }
     LaunchedEffect(Unit) {
-        // Using snapshotFlow ensures that we create only one collector that watches both states.
         snapshotFlow { Pair(googleMap, etaResponse) }
             .collect { (map, etaResponse) ->
                 if (map == null || etaResponse == null) return@collect
@@ -101,7 +94,7 @@ fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
                             stopMarkers.add(stopMarker)
                         }
                     }
-                    // Only process if the vehicle_location is present.
+
                     result.vehicle_location?.let { vehicleLocation ->
                         val busMarker = addBusMarker(map, vehicleLocation, result.student?.first_name?:"",
                             result.route?:"",
@@ -115,7 +108,6 @@ fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
                 // If there are markers and the zoom has not been adjusted yet, adjust the camera.
                 if (stopMarkers.isNotEmpty() && !hasZoomAdjusted.value) {
                     adjustZoom(map, stopMarkers)
-                    // Mark that the map's zoom has been adjusted.
                     hasZoomAdjusted.value = true
                 }
 
@@ -129,18 +121,15 @@ fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
                 if (isShown) {
                     // While the map view is visible, poll every 10 seconds.
                     while (true) {
-                        // Call your suspend function that fetches new API data.
                         viewModel.refreshData()
                         delay(10_000L)
                     }
                 }
-                // When isShown becomes false, collectLatest will cancel the polling block.
             }
     }
 
     val context = LocalContext.current
 
-    // Compose UI: Box to overlay a loading indicator on top of the MapView.
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             factory = { mapView },
@@ -169,7 +158,6 @@ fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
 
 
         if (isLoading) {
-            // Overlay a centered progress indicator.
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -189,10 +177,8 @@ fun addStopMarkers(
 
     Log.d("stop", studentName)
 
-    // Create the LatLng position from vehicle location.
     val position = LatLng(stop.lat, stop.lng)
 
-    // Add marker to the map with the specified rotation (bearing) and centered anchor.
     return googleMap.addMarker(
         MarkerOptions()
             .position(position)
@@ -224,7 +210,6 @@ fun adjustZoom(
  * Assumes you have an ic_bus vector drawable in your resources.
  */
 fun getTintedBusIcon(context: Context, drawableResId: Int, hue: Float): BitmapDescriptor {
-    // Retrieve the vector drawable
     val drawable = context.getDrawable(drawableResId)?.mutate()
         ?: throw IllegalArgumentException("Drawable resource not found")
 
@@ -249,16 +234,11 @@ fun addBusMarker(
     route: String,
     context: Context
 ): Marker? {
-    // Compute hue from the student name.
     val hue = (abs(studentName.hashCode()) % 360).toFloat()
 
-    // Use the helper function to get a tinted bus icon.
     val busIcon = getTintedBusIcon(context, R.drawable.bus_school, hue)
-
-    // Create the LatLng position from vehicle location.
     val position = LatLng(vehicleLocation.lat, vehicleLocation.lng)
 
-    // Add marker to the map with the specified rotation (bearing) and centered anchor.
     return googleMap.addMarker(
         MarkerOptions()
             .position(position)

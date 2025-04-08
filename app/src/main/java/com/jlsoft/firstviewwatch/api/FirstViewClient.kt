@@ -52,7 +52,7 @@ object FirstViewClient {
     private fun provideOkHttpClient(context: Context): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            .addInterceptor(AuthInterceptor(context)) // Our interceptor that refreshes tokens if needed
+            .addInterceptor(AuthInterceptor()) // Our interceptor that refreshes tokens if needed
             .build()
     }
 
@@ -75,9 +75,8 @@ private val loggingInterceptor: HttpLoggingInterceptor by lazy {
 }
 
 
-class AuthInterceptor(private val context: Context) : Interceptor {
+class AuthInterceptor() : Interceptor {
 
-    // Retrieves the stored JWT from SharedPreferences.
     private fun getToken(): String? {
         return MyApplication.myPrefs().getString("auth_token", null)
     }
@@ -100,30 +99,23 @@ class AuthInterceptor(private val context: Context) : Interceptor {
         }
     }
 
-    // Checks whether the token is expired.
     private fun isTokenExpired(token: String): Boolean {
         val expireTime = getExpireTimeFromJwt(token)
         return expireTime == null || System.currentTimeMillis() > expireTime
     }
 
-    // Makes a coroutine-based API call to refresh the token.
     private suspend fun refreshTokenCoroutine(): String {
         val loginToken = MyApplication.myPrefs().getString("login_token", null)
         val email = MyApplication.myPrefs().getString("email", null)
         if(loginToken != null && email != null){
             return try {
-                // Prepare the refresh request payload.
                 val requestPayload = TokenRequest(
                     email = email,
                     login_token = loginToken
                 )
-                // Execute the suspend function in our Retrofit service.
                 val response = AuthClient.instance.getToken(requestPayload)
-                // Optionally, you can check the response.response.code and handle errors.
-                // Save new token in SharedPreferences.
                 MyApplication.myPrefs().edit().apply {
                     putString("auth_token", response.auth_token)
-                    // Optionally, store expiration info if needed.
                     apply()
                 }
                 response.auth_token
@@ -146,7 +138,7 @@ class AuthInterceptor(private val context: Context) : Interceptor {
         val originalRequest = chain.request()
         // Attach the token to the Authorization header if available.
         val requestBuilder = originalRequest.newBuilder()
-        token?.let {
+        token.let {
             requestBuilder.header("Authorization", "Bearer $it")
         }
         val newRequest = requestBuilder.build()

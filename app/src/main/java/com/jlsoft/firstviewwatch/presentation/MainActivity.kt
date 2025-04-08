@@ -5,7 +5,6 @@
 
 package com.jlsoft.firstviewwatch.presentation
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity

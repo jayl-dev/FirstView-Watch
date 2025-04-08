@@ -18,7 +18,7 @@ class MyApplication : Application() {
         private const val PREF_NAME = "MyPrefs"
 
         fun myPrefs(): SharedPreferences {
-            return applicationContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            return applicationContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE)
         }
 
         fun applicationContext(): Context {

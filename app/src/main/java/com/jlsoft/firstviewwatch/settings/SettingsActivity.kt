@@ -5,7 +5,6 @@ import androidx.appcompat.app.AppCompatActivity
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Replace the activity's content with the settings fragment.
         supportFragmentManager
             .beginTransaction()
             .replace(android.R.id.content, SettingsFragment())

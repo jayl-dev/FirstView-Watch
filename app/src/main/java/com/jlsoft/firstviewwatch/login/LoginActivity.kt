@@ -3,26 +3,21 @@ package com.jlsoft.firstviewwatch.login
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.inputmethod.EditorInfo
+import android.provider.Settings
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.core.content.edit
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
+import com.jlsoft.firstviewwatch.MyApplication
 import com.jlsoft.firstviewwatch.R
-import com.jlsoft.firstviewwatch.api.AuthApiSerivce
 import com.jlsoft.firstviewwatch.api.AuthClient
-import com.jlsoft.firstviewwatch.api.FirstViewClient
 import com.jlsoft.firstviewwatch.api.LoginRequest
-import com.jlsoft.firstviewwatch.api.TokenRequest
 import com.jlsoft.firstviewwatch.presentation.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import android.provider.Settings
-import androidx.activity.ComponentActivity
-import com.jlsoft.firstviewwatch.MyApplication
-import androidx.core.content.edit
 
 
 class LoginActivity : ComponentActivity() {
@@ -67,7 +62,7 @@ class LoginActivity : ComponentActivity() {
 
         when {
             !validateCredentials(username, password) ->
-                showError("Invalid credentials")
+                showError("Login failed")
             else -> {
                 login(etUsername.text.toString(), etPassword.text.toString())
             }
@@ -95,7 +90,6 @@ class LoginActivity : ComponentActivity() {
 
     private fun login(username: String, password: String) {
 
-        // Run the API call in a coroutine
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val requestPayload = LoginRequest(
@@ -119,7 +113,6 @@ class LoginActivity : ComponentActivity() {
                 }
             } catch (e: Exception) {
                 runOnUiThread {
-                    // Handle errors on the UI thread
                     Toast.makeText(
                         applicationContext,
                         "login failed: ${e.message}",

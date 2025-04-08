@@ -25,17 +25,17 @@ class MapViewModel : ViewModel() {
      */
     suspend fun refreshData() {
         try {
-            _isLoading.value = true  // Mark loading as true before the API
+            _isLoading.value = true
             val response = FirstViewClient.instance.getEta()
             response.result?.forEach {
-                if(it.vehicle_location == null){
-                    val mock = VehicleLocation(
-                        lat = 40.1252448+ Random.nextFloat()* 0.01f,
-                        lng = -75.0385262+ Random.nextFloat()* 0.01f,
-                        bearing = 129 + Random.nextInt(100)
-                    )
-                    it.vehicle_location = mock
-                }
+//                if(it.vehicle_location == null){
+//                    val mock = VehicleLocation(
+//                        lat = 40.1252448+ Random.nextFloat()* 0.01f,
+//                        lng = -75.0385262+ Random.nextFloat()* 0.01f,
+//                        bearing = 129 + Random.nextInt(100)
+//                    )
+//                    it.vehicle_location = mock
+//                }
             }
             _etaResponse.value = response
         } catch (e: Exception) {
