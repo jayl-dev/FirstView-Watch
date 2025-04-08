@@ -1,5 +1,4 @@
 package com.jlsoft.firstviewwatch.api
-
 import android.content.Context
 import android.util.Base64
 import android.util.Log
@@ -70,7 +69,10 @@ private val loggingInterceptor: HttpLoggingInterceptor by lazy {
     HttpLoggingInterceptor { message ->
         Log.d("HTTP_LOG", message)
     }.apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        level = when (MyApplication.isRunningOnEmulator()) {
+            true -> HttpLoggingInterceptor.Level.BASIC
+            false -> HttpLoggingInterceptor.Level.NONE
+        }
     }
 }
 

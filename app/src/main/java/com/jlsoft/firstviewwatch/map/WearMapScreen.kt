@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.createBitmap
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
@@ -49,7 +50,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.abs
 
 @Composable
-fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
+fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
     val mapView = rememberMapViewWithLifecycle()
     var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
     val stopMarkers = remember { mutableSetOf<Marker>() }
@@ -77,41 +78,54 @@ fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
             googleMap = null
         }
     }
-    LaunchedEffect(Unit) {
-        snapshotFlow { Pair(googleMap, etaResponse) }
-            .collect { (map, etaResponse) ->
-                if (map == null || etaResponse == null) return@collect
 
-                busMarkers.forEach { it.remove() }
-                stopMarkers.forEach { it.remove() }
-                busMarkers.clear()
-                stopMarkers.clear()
-                etaResponse.result?.forEach { result ->
-                    result.stop?.let { stop ->
-                        val stopMarker = addStopMarkers(map, stop,
-                            result.student?.first_name?:"")
-                        if(stopMarker != null){
-                            stopMarkers.add(stopMarker)
-                        }
-                    }
+//    LaunchedEffect(etaResponse) {
+//        println("LaunchedEffect triggered: $etaResponse")
+//    }
+    LaunchedEffect(etaResponse) {
 
-                    result.vehicle_location?.let { vehicleLocation ->
-                        val busMarker = addBusMarker(map, vehicleLocation, result.student?.first_name?:"",
-                            result.route?:"",
-                            MyApplication.applicationContext())
-                        if(busMarker != null){
-                            busMarkers.add(busMarker)
-                        }
-                    }
+        Log.d("MAP", "mapping ${etaResponse?.result?.size} results")
+        busMarkers.forEach { it.remove() }
+        stopMarkers.forEach { it.remove() }
+        busMarkers.clear()
+        stopMarkers.clear()
+        etaResponse?.result?.forEach { result ->
+            val studentName = result.student?.first_name?:""
+
+            Log.d("NAME", studentName)
+
+            result.stop?.let { stop ->
+                Log.d("STOP", stop.toString())
+
+                val stopMarker = addStopMarkers(googleMap, stop, studentName)
+                if(stopMarker != null){
+                    stopMarkers.add(stopMarker)
                 }
-
-                // If there are markers and the zoom has not been adjusted yet, adjust the camera.
-                if (stopMarkers.isNotEmpty() && !hasZoomAdjusted.value) {
-                    adjustZoom(map, stopMarkers)
-                    hasZoomAdjusted.value = true
-                }
-
             }
+
+            result.vehicle_location?.let { vehicleLocation ->
+                val busMarker = addBusMarker(googleMap, vehicleLocation,
+                    studentName,
+                    result.route?:"",
+                    MyApplication.applicationContext())
+                Log.d("VEHICLE", vehicleLocation.toString())
+                if(busMarker != null){
+                    busMarkers.add(busMarker)
+                }
+            }
+        }
+
+        // If there are markers and the zoom has not been adjusted yet, adjust the camera.
+        if (stopMarkers.isNotEmpty() && !hasZoomAdjusted.value) {
+            adjustZoom(googleMap, stopMarkers)
+            hasZoomAdjusted.value = true
+        }
+//        snapshotFlow {etaResponse}
+//            .collect { etaResponse ->
+//                if (etaResponse == null) return@collect
+//
+//
+//            }
     }
 
     LaunchedEffect(mapView) {
@@ -168,18 +182,15 @@ fun WearMapScreen(viewModel: MapViewModel = MapViewModel()) {
 
 
 fun addStopMarkers(
-    googleMap: GoogleMap,
+    googleMap: GoogleMap?,
     stop: Stop,
     studentName: String
 ): Marker? {
 // Compute hue from the student name.
     val hue = (abs(studentName.hashCode()) % 360).toFloat()
-
-    Log.d("stop", studentName)
-
     val position = LatLng(stop.lat, stop.lng)
 
-    return googleMap.addMarker(
+    return googleMap?.addMarker(
         MarkerOptions()
             .position(position)
             .icon(BitmapDescriptorFactory.defaultMarker(hue))
@@ -191,7 +202,7 @@ fun addStopMarkers(
 
 
 fun adjustZoom(
-    googleMap: GoogleMap,
+    googleMap: GoogleMap?,
     markers: Set<Marker>,
     padding: Int = 100
 ) {
@@ -201,7 +212,7 @@ fun adjustZoom(
             builder.include(marker.position)
         }
         val bounds = builder.build()
-        googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
+        googleMap?.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
     }
 }
 
@@ -228,7 +239,7 @@ fun getTintedBusIcon(context: Context, drawableResId: Int, hue: Float): BitmapDe
     return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 fun addBusMarker(
-    googleMap: GoogleMap,
+    googleMap: GoogleMap?,
     vehicleLocation: VehicleLocation,
     studentName: String,
     route: String,
@@ -239,7 +250,7 @@ fun addBusMarker(
     val busIcon = getTintedBusIcon(context, R.drawable.bus_school, hue)
     val position = LatLng(vehicleLocation.lat, vehicleLocation.lng)
 
-    return googleMap.addMarker(
+    return googleMap?.addMarker(
         MarkerOptions()
             .position(position)
             .icon(busIcon)
