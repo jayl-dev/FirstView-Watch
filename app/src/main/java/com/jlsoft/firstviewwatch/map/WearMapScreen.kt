@@ -177,7 +177,7 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
                     context.startActivity(intent)
                 },
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
+                    .align(Alignment.CenterStart)
                     .padding(2.dp)
                     .size(40.dp) // Smaller icon button size (adjust as needed)
             ) {
@@ -195,7 +195,7 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
                     }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
+                    .align(Alignment.CenterEnd)
                     .padding(2.dp)
                     .size(40.dp) // Smaller icon button size (adjust as needed)
             ) {

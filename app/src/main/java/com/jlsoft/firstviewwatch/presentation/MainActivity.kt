@@ -28,11 +28,10 @@ class MainActivity : ComponentActivity() ,  AmbientLifecycleObserver.AmbientLife
         super.onCreate(savedInstanceState)
 
         setTheme(android.R.style.Theme_DeviceDefault)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         // Create and register your ambient observer.
         ambientObserver = AmbientLifecycleObserver(this, this)
-        lifecycle.addObserver(ambientObserver)
-
+//        lifecycle.addObserver(ambientObserver)
         setupMainUi()
 
     }
@@ -40,6 +39,16 @@ class MainActivity : ComponentActivity() ,  AmbientLifecycleObserver.AmbientLife
     override fun onStart() {
         super.onStart()
         checkLoginToken()
+        keepScreenOn()
+    }
+
+    fun keepScreenOn(){
+
+        if(MyApplication.appPrefs().getBoolean("keep_screen_on", true)){
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }else{
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     private fun checkLoginToken() {

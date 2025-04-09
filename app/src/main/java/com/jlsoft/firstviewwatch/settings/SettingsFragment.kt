@@ -1,6 +1,8 @@
 package com.jlsoft.firstviewwatch.settings
 
+import android.app.AlertDialog
 import android.os.Bundle
+import androidx.preference.CheckBoxPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.jlsoft.firstviewwatch.MyApplication
@@ -14,8 +16,40 @@ class SettingsFragment : PreferenceFragmentCompat() {
             performLogout()
             true
         }
+        findPreference<Preference>("back")?.setOnPreferenceClickListener {
+            requireActivity().finish()
+            true
+        }
+        findPreference<Preference>("restart")?.setOnPreferenceClickListener {
+            MyApplication.forceRestart(requireActivity())
+            true
+        }
+
+        // Find the CheckBoxPreference by its key
+//        val forceRestartPref: CheckBoxPreference? = findPreference("keep_screen_on")
+//        forceRestartPref?.setOnPreferenceChangeListener { preference: Preference, newValue: Any ->
+//            showRestartConfirmationDialog()
+//            true
+//        }
+
 
     }
+    private fun showRestartConfirmationDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Restart FirstView Watch")
+            .setMessage("Changing this setting requires a restart of the app")
+            .setPositiveButton("Restart") { _, _ ->
+                MyApplication.forceRestart(requireActivity())
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+
+
+
 
     private fun performLogout() {
         MyApplication.myPrefs().edit().apply {
