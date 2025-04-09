@@ -1,3 +1,5 @@
+package com.jlsoft.firstviewwatch.map
+
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.jlsoft.firstviewwatch.api.EtaResponse
@@ -49,6 +51,7 @@ class MapViewModel : ViewModel() {
 
     }
 
+    @Suppress("unused")
     private fun mock(response: EtaResponse) {
         response.result?.forEach {
             if (it.vehicle_location == null) {

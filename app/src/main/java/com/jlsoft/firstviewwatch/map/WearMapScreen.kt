@@ -1,14 +1,16 @@
 package com.jlsoft.firstviewwatch.map// WearMapScreen.kt
 
-import MapViewModel
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -24,18 +26,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.Text
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.rememberCameraPositionState
 
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -63,6 +68,7 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
     var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
     val stopMarkers = remember { mutableSetOf<Marker>() }
     val busMarkers = remember { mutableSetOf<Marker>() }
+    val markersMap = remember { mutableMapOf<String, MutableList<Marker>>() }
     val hasZoomAdjusted = remember { mutableStateOf(false) }
     val isPanning = remember { mutableStateOf(false) }
 
@@ -77,7 +83,8 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
         mapView.getMapAsync { map ->
             googleMap = map
 //            map.uiSettings.isZoomControlsEnabled = MyApplication.isRunningOnEmulator()
-
+            val centerUS = LatLng(39.8283, -98.5795)
+            googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(centerUS, 3f))
             map.setOnCameraMoveStartedListener { reason ->
                 if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
                     hasZoomAdjusted.value = true
@@ -113,8 +120,11 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
         stopMarkers.forEach { it.remove() }
         busMarkers.clear()
         stopMarkers.clear()
+        markersMap.clear()
         etaResponse?.result?.forEach { result ->
-            val studentName = result.student?.first_name?:""
+            val firstName = result.student?.first_name?:""
+            val lastName = result.student?.last_name?:""
+            val studentName = "$firstName $lastName"
 
             Log.d("NAME", studentName)
 
@@ -124,6 +134,8 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
                 val stopMarker = addStopMarkers(googleMap, stop, studentName)
                 if(stopMarker != null){
                     stopMarkers.add(stopMarker)
+                    val markersForStudent = markersMap.getOrPut(studentName) { mutableListOf() }
+                    markersForStudent.add(stopMarker)
                 }
             }
 
@@ -135,9 +147,12 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
                 Log.d("VEHICLE", vehicleLocation.toString())
                 if(busMarker != null){
                     busMarkers.add(busMarker)
+                    val markersForStudent = markersMap.getOrPut(studentName) { mutableListOf() }
+                    markersForStudent.add(busMarker)
                 }
             }
         }
+
 
         // If there are markers and the zoom has not been adjusted yet, adjust the camera.
         if (stopMarkers.isNotEmpty() && !hasZoomAdjusted.value) {
@@ -179,7 +194,7 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .padding(2.dp)
-                    .size(40.dp) // Smaller icon button size (adjust as needed)
+                    .size(40.dp)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Settings,
@@ -197,7 +212,7 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(2.dp)
-                    .size(40.dp) // Smaller icon button size (adjust as needed)
+                    .size(40.dp)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Refresh,
@@ -205,7 +220,30 @@ fun WearMapScreen(viewModel: MapViewModel = viewModel()) {
                     tint = MaterialTheme.colors.primary
                 )
             }
+
+
+            if (markersMap.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    val keysList = markersMap.keys.toList()
+                    keysList.take(3).forEach { studentName ->
+                        val color = getColor(studentName)
+                        CircleButton(color = color) {
+                            if(markersMap[studentName]?.isNotEmpty() == true){
+                                adjustZoom(googleMap,
+                                    markersMap[studentName]?.toSet()?:emptySet())
+                            }
+                        }
+                    }
+
+                }
+            }
         }
+
 
 
         if (isLoading) {
@@ -244,13 +282,68 @@ fun adjustZoom(
     padding: Int = 100
 ) {
     if (markers.isNotEmpty()) {
-        val builder = LatLngBounds.Builder()
-        markers.forEach { marker ->
-            builder.include(marker.position)
+        if (markers.size == 1) {
+            // For a single marker, use newLatLngZoom with a default zoom level.
+            val marker = markers.first()
+            googleMap?.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(marker.position,
+                    googleMap.cameraPosition.zoom.coerceAtLeast(15f)
+                )
+            )
+        }else{
+            val builder = LatLngBounds.Builder()
+            markers.forEach { marker ->
+                builder.include(marker.position)
+            }
+            val bounds = builder.build()
+            val ne = bounds.northeast
+            val sw = bounds.southwest
+            val latDelta = abs(ne.latitude - sw.latitude)
+            val lngDelta = abs(ne.longitude - sw.longitude)
+
+            // If the bounds are too small, use a fixed zoom level.
+            val minDelta = 0.005
+            if (latDelta < minDelta && lngDelta < minDelta) {
+                val center = LatLng((ne.latitude + sw.latitude) / 2, (ne.longitude + sw.longitude) / 2)
+
+                googleMap?.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(center,
+                        googleMap.cameraPosition.zoom.coerceAtLeast(15f))
+                )
+            } else {
+                googleMap?.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
+            }
+
         }
-        val bounds = builder.build()
-        googleMap?.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding))
+
     }
+}
+
+@Composable
+fun CircleButton(
+    text: String? = null,
+    color: Color = Color.White,
+    onClick: () -> Unit = {}
+) {
+    Button(
+        onClick = onClick,
+        shape = CircleShape,
+        colors = ButtonDefaults.buttonColors(backgroundColor = color),
+        modifier = Modifier.size(12.dp)
+
+    ) {
+        if(text!=null)
+            Text(text)
+    }
+}
+
+fun getColor(name : String) : Color{
+    val hue = (abs(name.hashCode()) % 360).toFloat()
+    return Color.hsv(hue, 1f, 1f)
+}
+fun getColor(hue: Float): Int {
+    val hsv = floatArrayOf(hue, 1f, 1f)
+    return android.graphics.Color.HSVToColor(hsv)
 }
 
 /**
@@ -258,12 +351,11 @@ fun adjustZoom(
  * Assumes you have an ic_bus vector drawable in your resources.
  */
 fun getTintedBusIcon(context: Context, drawableResId: Int, hue: Float): BitmapDescriptor {
-    val drawable = context.getDrawable(drawableResId)?.mutate()
+    val drawable = ContextCompat.getDrawable(context,drawableResId)?.mutate()
         ?: throw IllegalArgumentException("Drawable resource not found")
 
     // Convert the hue (0-359) into an ARGB color using full saturation and brightness.
-    val hsv = floatArrayOf(hue, 1f, 1f)
-    val color = android.graphics.Color.HSVToColor(hsv)
+    val color = getColor(hue)
     drawable.setTint(color)
 
     // Create a bitmap from the drawable
