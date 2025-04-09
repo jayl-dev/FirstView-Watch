@@ -58,7 +58,7 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.compose.material:material:1.4.3")
+    implementation("androidx.compose.material:material:1.7.8")
     implementation("androidx.wear:wear:1.3.0" )
     implementation("androidx.wear:wear-ongoing:1.0.0" )
     implementation("com.google.maps.android:maps-compose:2.11.4")
@@ -94,7 +94,7 @@ dependencies {
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
     debugImplementation(libs.tiles.tooling)
-    implementation("androidx.preference:preference:1.2.0")
+    implementation("androidx.preference:preference-ktx:1.2.1")
 
 
 }

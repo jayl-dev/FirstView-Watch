@@ -63,7 +63,7 @@ class MyApplication : Application() {
                 )
 
                 // Schedule the PendingIntent to fire shortly (e.g., after 100ms)
-                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                val alarmManager = context.getSystemService(ALARM_SERVICE) as AlarmManager
                 alarmManager.set(
                     AlarmManager.RTC,
                     System.currentTimeMillis() + 500,

@@ -1,5 +1,4 @@
 package com.jlsoft.firstviewwatch.api
-import android.content.Context
 import android.util.Base64
 import android.util.Log
 import com.jlsoft.firstviewwatch.MyApplication
@@ -16,7 +15,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 
 
-interface AuthApiSerivce{
+interface AuthApiService{
 
     @POST("v1/sign-in")
     suspend fun login(@Body loginRequest: LoginRequest): LoginResponse
@@ -34,12 +33,12 @@ interface FirstViewApiService {
 object AuthClient {
     private const val BASE_URL = "https://firstviewbackend.com/api/"
 
-    val instance: AuthApiSerivce by lazy {
+    val instance: AuthApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(AuthApiSerivce::class.java)
+            .create(AuthApiService::class.java)
     }
 }
 

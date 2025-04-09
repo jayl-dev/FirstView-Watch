@@ -2,7 +2,6 @@ package com.jlsoft.firstviewwatch.settings
 
 import android.app.AlertDialog
 import android.os.Bundle
-import androidx.preference.CheckBoxPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.jlsoft.firstviewwatch.MyApplication
@@ -34,6 +33,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
 
     }
+    @Suppress("unused")
     private fun showRestartConfirmationDialog() {
         AlertDialog.Builder(requireContext())
             .setTitle("Restart FirstView Watch")
